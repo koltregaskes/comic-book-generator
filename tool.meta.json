@@ -1,0 +1,9 @@
+{
+  "slug": "comic-book-generator",
+  "title": "Comic Book Generator",
+  "category": "creative",
+  "ownerSession": "comic-book-generator-session",
+  "launchMode": "local-pwa",
+  "primaryPort": 4302,
+  "projectType": "comic-book"
+}
