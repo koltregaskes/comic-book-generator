@@ -17,20 +17,29 @@ export const sampleComicBookProject: ComicBookProjectPackage = createComicBookPr
         'Dense shadows, neon water reflections, premium European-comic composition, and clean readable silhouettes.',
       worldNotes:
         'Keep the city luminous and decayed. Every environment should feel half sacred, half industrial.',
+      creativeGoal:
+        'Build a comic package that can drive prompt writing, still-image generation, and later motion-comic adaptation.',
+      primaryGenerator: 'Offline prompt builder',
+      secondaryGenerator: 'Midjourney background runner',
+      publishingGoal: 'Create the issue package, cover variants, and reusable prompt bible.',
       characterRoster: [
         {
           id: 'vera',
           name: 'Vera',
           role: 'Lead thief',
           look: 'Cobalt coat, scar over brow, stolen relic satchel.',
-          continuityRules: 'Always keep the coat wet and reflective. Her scar should stay visible in three-quarter views.',
+          continuityRules:
+            'Always keep the coat wet and reflective. Her scar should stay visible in three-quarter views.',
+          visualHooks: 'Sharp silhouette, cobalt reflections, relic satchel, brow scar.',
         },
         {
           id: 'archivist-drone',
           name: 'Archivist Drone',
           role: 'Archive guide / threat',
           look: 'Silver shell, red lens, hanging antenna arrays.',
-          continuityRules: 'Keep the drone small against the architecture so the scale of the archive stays dominant.',
+          continuityRules:
+            'Keep the drone small against the architecture so the scale of the archive stays dominant.',
+          visualHooks: 'Tiny against colossal sets, silver shell, single red lens.',
         },
       ],
     },
@@ -105,22 +114,40 @@ export const sampleComicBookProject: ComicBookProjectPackage = createComicBookPr
     assets: [
       {
         id: 'asset-1',
-        label: 'Archive moodboard',
-        type: 'reference',
-        status: 'ready',
-        notes: 'Wet architecture, broken catwalks, glyph walls, cathedral scale.',
+        label: 'Archive cover key art',
+        type: 'Cover image',
+        source: 'Midjourney background runner',
+        status: 'queued',
+        promptPackId: 'prompt-pack-1',
+        deliveryLane: 'Cover',
+        notes: 'Queue three cover variants once the negative prompt is locked.',
+      },
+      {
+        id: 'asset-2',
+        label: 'Interior page stills',
+        type: 'Page generation set',
+        source: 'Midjourney background runner',
+        status: 'prompt-ready',
+        promptPackId: 'prompt-pack-1',
+        deliveryLane: 'Interiors',
+        notes: 'Run after character continuity pass is approved.',
       },
     ],
     prompts: [
       {
         id: 'prompt-pack-1',
         label: 'Core issue pack',
+        purpose: 'Main cover and page generation pipeline',
+        generator: 'Offline prompt builder + Midjourney',
+        status: 'prompt-ready',
         coverPrompt:
           'Graphic novel cover, flooded neon archive, lone thief framed against luminous glyph map, dramatic contrast, premium comic painting style.',
         pagePrompt:
           'Cinematic comic interior art with clean panel readability, futuristic ruins, wet reflections, bold silhouettes, consistent costume continuity.',
+        negativePrompt: 'blurry faces, inconsistent costume details, muddy hands, unreadable silhouettes',
         continuityNotes:
           'Always keep the archive glyph system cyan-white and the city lighting magenta-blue.',
+        targetAsset: 'Archive cover key art',
       },
     ],
     outputs: [
@@ -129,17 +156,28 @@ export const sampleComicBookProject: ComicBookProjectPackage = createComicBookPr
         label: 'Issue package',
         status: 'planned',
         target: 'Comic package JSON export',
+        format: 'json',
+        notes: 'Primary structured export for the wider toolchain.',
       },
       {
         id: 'output-2',
         label: 'Cover variants',
-        status: 'planned',
+        status: 'queued',
         target: 'Three cover prompt variations',
+        format: 'png',
+        notes: 'Use for cover selection and social reveal.',
       },
     ],
     metrics: {
       targetPages: 24,
       coverVariants: 3,
+      aiRunbook:
+        'Build prompt packs offline first, queue approved assets to Midjourney in the background, then review stills before promoting them into the issue package.',
+      reviewFocus: [
+        'Character continuity before page 4.',
+        'Readable silhouettes in every action panel.',
+        'Archive glyph system must stay consistent.',
+      ],
     },
     notes: [
       'Preserve the archive glyph design language across every page.',

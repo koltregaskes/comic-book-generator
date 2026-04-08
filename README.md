@@ -1,16 +1,17 @@
 # Comic Book Generator
 
-Comic Book Generator turns a concept into a `creative-project-package-v1` comic issue package.
+Comic Book Generator turns a concept into a `creative-project-package-v1` comic issue package inside a more studio-style workspace.
 
 ## Included in the current build
 
 - issue setup with arc summary and visual-language direction
 - character roster and continuity fields
-- page planner with turn-moment notes
+- focused page workbench with turn-moment notes
 - nested panel planner
 - lettering, dialogue, and caption notes
-- cover and page prompt packs
-- delivery outputs and working notes
+- prompt studio for offline prompt building
+- generation queue for Midjourney-style background runs
+- delivery outputs, AI runbook, and working notes
 - JSON export/import
 - installable PWA support
 
@@ -33,3 +34,4 @@ The current sample project shows the intended structure for:
 - continuity and character planning
 - page-to-panel breakdown
 - reusable prompt packaging
+- background generation queue tracking
