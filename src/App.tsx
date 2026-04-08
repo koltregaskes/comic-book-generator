@@ -4,9 +4,10 @@ import {
   formatPanelCount,
   parseProjectPackage,
   slugify,
+  type CharacterProfile,
   type ComicBookProjectPackage,
   type ComicPage,
-  type ComicPromptPack,
+  type ComicPanel,
 } from './project-package'
 import { sampleComicBookProject } from './sample-project'
 
@@ -39,43 +40,110 @@ function App() {
     persist(updater(project))
   }
 
-  const addPage = () => {
-    updateProject((current) => {
-      const page: ComicPage = {
-        id: crypto.randomUUID(),
-        pageNumber: current.scenes.length + 1,
-        title: `Page ${current.scenes.length + 1}`,
-        summary: 'Describe the story beat, reveal, or transition on this page.',
-        panelCount: 5,
-        panelPlan: 'Panel 1: establish. Panel 2: action. Panel 3: reaction. Panel 4: escalation.',
-        dialogueNotes: '',
-        letteringNotes: '',
-      }
+  const metrics = useMemo(() => {
+    const totalPanels = project.scenes.reduce((sum, page) => sum + page.panels.length, 0)
+    return {
+      pages: project.scenes.length,
+      panels: totalPanels,
+      characters: project.inputs.characterRoster.length,
+      outputs: project.outputs.length,
+    }
+  }, [project])
 
-      return {
-        ...current,
-        scenes: [...current.scenes, page],
-        updatedAt: new Date().toISOString(),
-      }
-    })
+  const addCharacter = () => {
+    updateProject((current) => ({
+      ...current,
+      inputs: {
+        ...current.inputs,
+        characterRoster: [
+          ...current.inputs.characterRoster,
+          {
+            id: crypto.randomUUID(),
+            name: `Character ${current.inputs.characterRoster.length + 1}`,
+            role: '',
+            look: '',
+            continuityRules: '',
+          },
+        ],
+      },
+      updatedAt: new Date().toISOString(),
+    }))
+  }
+
+  const addPage = () => {
+    updateProject((current) => ({
+      ...current,
+      scenes: [
+        ...current.scenes,
+        {
+          id: crypto.randomUUID(),
+          pageNumber: current.scenes.length + 1,
+          title: `Page ${current.scenes.length + 1}`,
+          summary: 'Describe the page beat, reveal, or transition here.',
+          panelCount: 1,
+          location: '',
+          turnMoment: '',
+          dialogueNotes: '',
+          letteringNotes: '',
+          panels: [
+            {
+              id: crypto.randomUUID(),
+              panelNumber: 1,
+              framing: '',
+              action: '',
+              dialogue: '',
+              caption: '',
+              prompt: '',
+            },
+          ],
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }))
+  }
+
+  const addPanel = (pageId: string) => {
+    updateProject((current) => ({
+      ...current,
+      scenes: current.scenes.map((page) =>
+        page.id === pageId
+          ? {
+              ...page,
+              panels: [
+                ...page.panels,
+                {
+                  id: crypto.randomUUID(),
+                  panelNumber: page.panels.length + 1,
+                  framing: '',
+                  action: '',
+                  dialogue: '',
+                  caption: '',
+                  prompt: '',
+                },
+              ],
+              panelCount: page.panels.length + 1,
+            }
+          : page,
+      ),
+      updatedAt: new Date().toISOString(),
+    }))
   }
 
   const addPromptPack = () => {
-    updateProject((current) => {
-      const pack: ComicPromptPack = {
-        id: crypto.randomUUID(),
-        label: `Prompt Pack ${current.prompts.length + 1}`,
-        coverPrompt: 'Write the cover prompt here.',
-        pagePrompt: 'Write the page style prompt here.',
-        continuityNotes: 'Describe palette, costume, props, and environment continuity.',
-      }
-
-      return {
-        ...current,
-        prompts: [...current.prompts, pack],
-        updatedAt: new Date().toISOString(),
-      }
-    })
+    updateProject((current) => ({
+      ...current,
+      prompts: [
+        ...current.prompts,
+        {
+          id: crypto.randomUUID(),
+          label: `Prompt Pack ${current.prompts.length + 1}`,
+          coverPrompt: '',
+          pagePrompt: '',
+          continuityNotes: '',
+        },
+      ],
+      updatedAt: new Date().toISOString(),
+    }))
   }
 
   const addOutput = () => {
@@ -94,7 +162,6 @@ function App() {
     }))
   }
 
-  const handleExport = () => exportProjectPackage(project)
   const handleImportClick = () => fileInputRef.current?.click()
 
   const handleImport = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -116,28 +183,18 @@ function App() {
     }
   }
 
-  const metrics = useMemo(() => {
-    const totalPanels = project.scenes.reduce((sum, page) => sum + page.panelCount, 0)
-    return {
-      pages: project.scenes.length,
-      panels: totalPanels,
-      promptPacks: project.prompts.length,
-      characters: project.inputs.characterContinuity.length,
-    }
-  }, [project])
-
   return (
     <div className="app-shell">
       <header className="hero">
         <div className="hero-copy">
-          <span className="eyebrow">Issue Builder</span>
+          <span className="eyebrow">Issue Design Console</span>
           <h1>Comic Book Generator</h1>
           <p>
-            Shape a concept into a full comic issue package with page planning, panel structure,
-            character continuity, lettering notes, and exportable prompt packs.
+            Build a comic issue as a real production package with character continuity, page turns,
+            nested panel beats, cover prompts, and export-ready issue structure.
           </p>
           <div className="hero-actions">
-            <button onClick={handleExport}>Export Package</button>
+            <button onClick={() => exportProjectPackage(project)}>Export Package</button>
             <button className="secondary" onClick={handleImportClick}>
               Import Package
             </button>
@@ -156,8 +213,8 @@ function App() {
         <div className="metric-grid">
           <MetricCard label="Pages" value={String(metrics.pages)} />
           <MetricCard label="Panels" value={formatPanelCount(metrics.panels)} />
-          <MetricCard label="Prompt Packs" value={String(metrics.promptPacks)} />
           <MetricCard label="Characters" value={String(metrics.characters)} />
+          <MetricCard label="Outputs" value={String(metrics.outputs)} />
         </div>
       </header>
 
@@ -166,7 +223,7 @@ function App() {
           <div className="panel-heading">
             <div>
               <span className="panel-kicker">Issue Setup</span>
-              <h2>Concept and continuity</h2>
+              <h2>Concept and series direction</h2>
             </div>
           </div>
           <div className="field-grid">
@@ -184,8 +241,8 @@ function App() {
             />
             <Field
               label="Issue number"
-              value={String(project.inputs.issueNumber)}
               type="number"
+              value={String(project.inputs.issueNumber)}
               onChange={(value) =>
                 updateProject((current) => ({
                   ...current,
@@ -229,7 +286,7 @@ function App() {
             }
           />
           <TextArea
-            label="Logline and issue objective"
+            label="Logline"
             value={project.inputs.logline}
             onChange={(value) =>
               updateProject((current) => ({
@@ -240,143 +297,145 @@ function App() {
             }
           />
           <TextArea
-            label="Character continuity"
-            value={project.inputs.characterContinuity.join('\n')}
+            label="Issue arc"
+            value={project.inputs.arcSummary}
             onChange={(value) =>
               updateProject((current) => ({
                 ...current,
-                inputs: {
-                  ...current.inputs,
-                  characterContinuity: value.split('\n').map((line) => line.trim()).filter(Boolean),
-                },
+                inputs: { ...current.inputs, arcSummary: value },
                 updatedAt: new Date().toISOString(),
               }))
             }
           />
-          <TextArea
-            label="World and lettering notes"
-            value={project.inputs.worldNotes}
-            onChange={(value) =>
-              updateProject((current) => ({
-                ...current,
-                inputs: { ...current.inputs, worldNotes: value },
-                updatedAt: new Date().toISOString(),
-              }))
-            }
-          />
-          <TextArea
-            label="Working notes"
-            value={project.notes.join('\n')}
-            onChange={(value) =>
-              updateProject((current) => ({
-                ...current,
-                notes: value
-                  .split('\n')
-                  .map((line) => line.trim())
-                  .filter(Boolean),
-                updatedAt: new Date().toISOString(),
-              }))
-            }
-          />
+          <div className="field-grid">
+            <TextArea
+              label="Visual language"
+              value={project.inputs.visualLanguage}
+              onChange={(value) =>
+                updateProject((current) => ({
+                  ...current,
+                  inputs: { ...current.inputs, visualLanguage: value },
+                  updatedAt: new Date().toISOString(),
+                }))
+              }
+            />
+            <TextArea
+              label="World notes"
+              value={project.inputs.worldNotes}
+              onChange={(value) =>
+                updateProject((current) => ({
+                  ...current,
+                  inputs: { ...current.inputs, worldNotes: value },
+                  updatedAt: new Date().toISOString(),
+                }))
+              }
+            />
+          </div>
         </section>
 
         <section className="panel">
           <div className="panel-heading">
             <div>
+              <span className="panel-kicker">Continuity</span>
+              <h2>Character roster</h2>
+            </div>
+            <button className="secondary" onClick={addCharacter}>
+              Add Character
+            </button>
+          </div>
+          <div className="stack-list">
+            {project.inputs.characterRoster.map((character) => (
+              <article className="stack-card" key={character.id}>
+                <div className="stack-header compact">
+                  <strong>{character.name}</strong>
+                  <button
+                    className="ghost tiny"
+                    onClick={() =>
+                      updateProject((current) => ({
+                        ...current,
+                        inputs: {
+                          ...current.inputs,
+                          characterRoster: current.inputs.characterRoster.filter(
+                            (item) => item.id !== character.id,
+                          ),
+                        },
+                        updatedAt: new Date().toISOString(),
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
+                <div className="field-grid">
+                  <Field
+                    label="Name"
+                    value={character.name}
+                    onChange={(value) =>
+                      updateCharacter(project, character.id, persist, {
+                        name: value,
+                      })
+                    }
+                  />
+                  <Field
+                    label="Role"
+                    value={character.role}
+                    onChange={(value) =>
+                      updateCharacter(project, character.id, persist, {
+                        role: value,
+                      })
+                    }
+                  />
+                </div>
+                <TextArea
+                  label="Look"
+                  value={character.look}
+                  onChange={(value) =>
+                    updateCharacter(project, character.id, persist, {
+                      look: value,
+                    })
+                  }
+                />
+                <TextArea
+                  label="Continuity rules"
+                  value={character.continuityRules}
+                  onChange={(value) =>
+                    updateCharacter(project, character.id, persist, {
+                      continuityRules: value,
+                    })
+                  }
+                />
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel panel-full">
+          <div className="panel-heading">
+            <div>
               <span className="panel-kicker">Pages</span>
-              <h2>Page and panel planner</h2>
+              <h2>Page turns and panel beats</h2>
             </div>
             <button className="secondary" onClick={addPage}>
               Add Page
             </button>
           </div>
           <div className="stack-list">
-            {project.scenes.map((page, index) => (
-              <article className="stack-card" key={page.id}>
-                <div className="field-grid">
-                  <Field
-                    label="Page title"
-                    value={page.title}
-                    onChange={(value) =>
-                      updateProject((current) => ({
-                        ...current,
-                        scenes: current.scenes.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, title: value } : item,
-                        ),
-                        updatedAt: new Date().toISOString(),
-                      }))
-                    }
-                  />
-                  <Field
-                    label="Panel count"
-                    type="number"
-                    value={String(page.panelCount)}
-                    onChange={(value) =>
-                      updateProject((current) => ({
-                        ...current,
-                        scenes: current.scenes.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, panelCount: Number(value) || 0 } : item,
-                        ),
-                        updatedAt: new Date().toISOString(),
-                      }))
-                    }
-                  />
-                </div>
-                <TextArea
-                  label="Page summary"
-                  value={page.summary}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      scenes: current.scenes.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, summary: value } : item,
-                      ),
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <TextArea
-                  label="Panel plan"
-                  value={page.panelPlan}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      scenes: current.scenes.map((item, itemIndex) =>
-                        itemIndex === index ? { ...item, panelPlan: value } : item,
-                      ),
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <div className="field-grid">
-                  <TextArea
-                    label="Dialogue notes"
-                    value={page.dialogueNotes}
-                    onChange={(value) =>
-                      updateProject((current) => ({
-                        ...current,
-                        scenes: current.scenes.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, dialogueNotes: value } : item,
-                        ),
-                        updatedAt: new Date().toISOString(),
-                      }))
-                    }
-                  />
-                  <TextArea
-                    label="Lettering notes"
-                    value={page.letteringNotes}
-                    onChange={(value) =>
-                      updateProject((current) => ({
-                        ...current,
-                        scenes: current.scenes.map((item, itemIndex) =>
-                          itemIndex === index ? { ...item, letteringNotes: value } : item,
-                        ),
-                        updatedAt: new Date().toISOString(),
-                      }))
-                    }
-                  />
-                </div>
-              </article>
+            {project.scenes.map((page, pageIndex) => (
+              <PageEditor
+                key={page.id}
+                page={page}
+                pageIndex={pageIndex}
+                onChange={(patch) => updatePage(project, page.id, persist, patch)}
+                onRemove={() =>
+                  updateProject((current) => ({
+                    ...current,
+                    scenes: current.scenes.filter((item) => item.id !== page.id),
+                    updatedAt: new Date().toISOString(),
+                  }))
+                }
+                onAddPanel={() => addPanel(page.id)}
+                onUpdatePanel={(panelId, patch) => updatePanel(project, page.id, panelId, persist, patch)}
+              />
             ))}
           </div>
         </section>
@@ -394,6 +453,21 @@ function App() {
           <div className="stack-list">
             {project.prompts.map((prompt, index) => (
               <article className="stack-card" key={prompt.id}>
+                <div className="stack-header compact">
+                  <strong>{prompt.label}</strong>
+                  <button
+                    className="ghost tiny"
+                    onClick={() =>
+                      updateProject((current) => ({
+                        ...current,
+                        prompts: current.prompts.filter((item) => item.id !== prompt.id),
+                        updatedAt: new Date().toISOString(),
+                      }))
+                    }
+                  >
+                    Remove
+                  </button>
+                </div>
                 <Field
                   label="Label"
                   value={prompt.label}
@@ -464,7 +538,7 @@ function App() {
           <div className="stack-list">
             {project.outputs.map((output, index) => (
               <article className="stack-card" key={output.id}>
-                <div className="stack-header">
+                <div className="stack-header compact">
                   <strong>{output.label}</strong>
                   <button
                     className="ghost tiny"
@@ -523,6 +597,17 @@ function App() {
               </article>
             ))}
           </div>
+          <TextArea
+            label="Working notes"
+            value={project.notes.join('\n')}
+            onChange={(value) =>
+              updateProject((current) => ({
+                ...current,
+                notes: splitLines(value),
+                updatedAt: new Date().toISOString(),
+              }))
+            }
+          />
         </section>
       </main>
 
@@ -533,6 +618,193 @@ function App() {
         accept="application/json"
         onChange={handleImport}
       />
+    </div>
+  )
+}
+
+type PageEditorProps = {
+  page: ComicPage
+  pageIndex: number
+  onChange: (patch: Partial<ComicPage>) => void
+  onRemove: () => void
+  onAddPanel: () => void
+  onUpdatePanel: (panelId: string, patch: Partial<ComicPanel>) => void
+}
+
+function PageEditor({
+  page,
+  pageIndex,
+  onChange,
+  onRemove,
+  onAddPanel,
+  onUpdatePanel,
+}: PageEditorProps) {
+  return (
+    <article className="stack-card cinematic-card">
+      <div className="stack-header">
+        <div>
+          <strong>{page.title}</strong>
+          <p className="card-caption">Page {pageIndex + 1}</p>
+        </div>
+        <div className="inline-actions">
+          <button className="secondary tiny" onClick={onAddPanel}>
+            Add Panel
+          </button>
+          <button className="ghost tiny" onClick={onRemove}>
+            Remove Page
+          </button>
+        </div>
+      </div>
+      <div className="field-grid three-up">
+        <Field label="Page title" value={page.title} onChange={(value) => onChange({ title: value })} />
+        <Field
+          label="Page number"
+          type="number"
+          value={String(page.pageNumber)}
+          onChange={(value) => onChange({ pageNumber: Number(value) || 0 })}
+        />
+        <Field label="Location" value={page.location} onChange={(value) => onChange({ location: value })} />
+      </div>
+      <TextArea label="Page summary" value={page.summary} onChange={(value) => onChange({ summary: value })} />
+      <div className="field-grid">
+        <TextArea
+          label="Turn moment"
+          value={page.turnMoment}
+          onChange={(value) => onChange({ turnMoment: value })}
+        />
+        <TextArea
+          label="Dialogue notes"
+          value={page.dialogueNotes}
+          onChange={(value) => onChange({ dialogueNotes: value })}
+        />
+      </div>
+      <TextArea
+        label="Lettering notes"
+        value={page.letteringNotes}
+        onChange={(value) => onChange({ letteringNotes: value })}
+      />
+      <div className="subsection-heading">
+        <span>Panel plan</span>
+        <strong>{page.panels.length} planned panels</strong>
+      </div>
+      <div className="shot-grid">
+        {page.panels.map((panel) => (
+          <div className="shot-card" key={panel.id}>
+            <div className="field-grid">
+              <Field
+                label="Panel number"
+                type="number"
+                value={String(panel.panelNumber)}
+                onChange={(value) => onUpdatePanel(panel.id, { panelNumber: Number(value) || 0 })}
+              />
+              <Field
+                label="Framing"
+                value={panel.framing}
+                onChange={(value) => onUpdatePanel(panel.id, { framing: value })}
+              />
+            </div>
+            <TextArea
+              label="Action"
+              value={panel.action}
+              onChange={(value) => onUpdatePanel(panel.id, { action: value })}
+            />
+            <div className="field-grid">
+              <TextArea
+                label="Dialogue"
+                value={panel.dialogue}
+                onChange={(value) => onUpdatePanel(panel.id, { dialogue: value })}
+              />
+              <TextArea
+                label="Caption"
+                value={panel.caption}
+                onChange={(value) => onUpdatePanel(panel.id, { caption: value })}
+              />
+            </div>
+            <TextArea
+              label="Prompt"
+              value={panel.prompt}
+              onChange={(value) => onUpdatePanel(panel.id, { prompt: value })}
+            />
+          </div>
+        ))}
+      </div>
+    </article>
+  )
+}
+
+function updateCharacter(
+  project: ComicBookProjectPackage,
+  characterId: string,
+  persist: (project: ComicBookProjectPackage) => void,
+  patch: Partial<CharacterProfile>,
+) {
+  persist({
+    ...project,
+    inputs: {
+      ...project.inputs,
+      characterRoster: project.inputs.characterRoster.map((character) =>
+        character.id === characterId ? { ...character, ...patch } : character,
+      ),
+    },
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+function updatePage(
+  project: ComicBookProjectPackage,
+  pageId: string,
+  persist: (project: ComicBookProjectPackage) => void,
+  patch: Partial<ComicPage>,
+) {
+  persist({
+    ...project,
+    scenes: project.scenes.map((page) => {
+      if (page.id !== pageId) {
+        return page
+      }
+      const nextPage = { ...page, ...patch }
+      return { ...nextPage, panelCount: nextPage.panels.length }
+    }),
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+function updatePanel(
+  project: ComicBookProjectPackage,
+  pageId: string,
+  panelId: string,
+  persist: (project: ComicBookProjectPackage) => void,
+  patch: Partial<ComicPanel>,
+) {
+  persist({
+    ...project,
+    scenes: project.scenes.map((page) =>
+      page.id === pageId
+        ? {
+            ...page,
+            panels: page.panels.map((panel) => (panel.id === panelId ? { ...panel, ...patch } : panel)),
+            panelCount: page.panels.length,
+          }
+        : page,
+    ),
+    updatedAt: new Date().toISOString(),
+  })
+}
+
+function splitLines(value: string) {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+type MetricCardProps = { label: string; value: string }
+
+function MetricCard({ label, value }: MetricCardProps) {
+  return (
+    <div className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
     </div>
   )
 }
@@ -565,20 +837,6 @@ function TextArea({ label, value, onChange }: TextAreaProps) {
       <span>{label}</span>
       <textarea rows={5} value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
-  )
-}
-
-type MetricCardProps = {
-  label: string
-  value: string
-}
-
-function MetricCard({ label, value }: MetricCardProps) {
-  return (
-    <div className="metric-card">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
   )
 }
 

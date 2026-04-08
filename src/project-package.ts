@@ -5,15 +5,27 @@ export type CreativeProjectType =
   | 'creative-canvas-workflow'
   | 'planning-estimate'
 
+export type ComicPanel = {
+  id: string
+  panelNumber: number
+  framing: string
+  action: string
+  dialogue: string
+  caption: string
+  prompt: string
+}
+
 export type ComicPage = {
   id: string
   pageNumber: number
   title: string
   summary: string
   panelCount: number
-  panelPlan: string
+  location: string
+  turnMoment: string
   dialogueNotes: string
   letteringNotes: string
+  panels: ComicPanel[]
 }
 
 export type ComicPromptPack = {
@@ -22,6 +34,29 @@ export type ComicPromptPack = {
   coverPrompt: string
   pagePrompt: string
   continuityNotes: string
+}
+
+export type CharacterProfile = {
+  id: string
+  name: string
+  role: string
+  look: string
+  continuityRules: string
+}
+
+export type ComicAsset = {
+  id: string
+  label: string
+  type: string
+  status: string
+  notes: string
+}
+
+export type ComicOutput = {
+  id: string
+  label: string
+  status: string
+  target: string
 }
 
 export type ComicBookProjectPackage = {
@@ -38,24 +73,15 @@ export type ComicBookProjectPackage = {
     seriesTitle: string
     genre: string
     logline: string
+    arcSummary: string
+    visualLanguage: string
     worldNotes: string
-    characterContinuity: string[]
+    characterRoster: CharacterProfile[]
   }
   scenes: ComicPage[]
-  assets: {
-    id: string
-    label: string
-    type: string
-    status: string
-    notes: string
-  }[]
+  assets: ComicAsset[]
   prompts: ComicPromptPack[]
-  outputs: {
-    id: string
-    label: string
-    status: string
-    target: string
-  }[]
+  outputs: ComicOutput[]
   metrics: Record<string, unknown>
   notes: string[]
 }
@@ -68,35 +94,79 @@ export function slugify(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
+function createPanel(partial?: Partial<ComicPanel>): ComicPanel {
+  return {
+    id: partial?.id ?? crypto.randomUUID(),
+    panelNumber: partial?.panelNumber ?? 1,
+    framing: partial?.framing ?? '',
+    action: partial?.action ?? '',
+    dialogue: partial?.dialogue ?? '',
+    caption: partial?.caption ?? '',
+    prompt: partial?.prompt ?? '',
+  }
+}
+
+function createPage(partial?: Partial<ComicPage>): ComicPage {
+  const panels = Array.isArray(partial?.panels) ? partial.panels.map((panel) => createPanel(panel)) : []
+
+  return {
+    id: partial?.id ?? crypto.randomUUID(),
+    pageNumber: partial?.pageNumber ?? 1,
+    title: partial?.title ?? 'New page',
+    summary: partial?.summary ?? '',
+    panelCount: partial?.panelCount ?? (panels.length || 4),
+    location: partial?.location ?? '',
+    turnMoment: partial?.turnMoment ?? '',
+    dialogueNotes: partial?.dialogueNotes ?? '',
+    letteringNotes: partial?.letteringNotes ?? '',
+    panels,
+  }
+}
+
+function createCharacter(partial?: Partial<CharacterProfile>): CharacterProfile {
+  return {
+    id: partial?.id ?? crypto.randomUUID(),
+    name: partial?.name ?? 'Character',
+    role: partial?.role ?? '',
+    look: partial?.look ?? '',
+    continuityRules: partial?.continuityRules ?? '',
+  }
+}
+
 export function createComicBookProject(
   title: string,
   partial?: Partial<ComicBookProjectPackage>,
 ): ComicBookProjectPackage {
   const now = new Date().toISOString()
+  const nextTitle = partial?.title ?? title
+
   return {
     formatVersion: 'creative-project-package-v1',
     projectType: 'comic-book',
-    title,
-    slug: slugify(title),
-    summary: '',
-    status: 'draft',
-    createdAt: now,
-    updatedAt: now,
+    title: nextTitle,
+    slug: partial?.slug ?? slugify(nextTitle),
+    summary: partial?.summary ?? '',
+    status: partial?.status ?? 'draft',
+    createdAt: partial?.createdAt ?? now,
+    updatedAt: partial?.updatedAt ?? now,
     inputs: {
-      issueNumber: 1,
-      seriesTitle: '',
-      genre: '',
-      logline: '',
-      worldNotes: '',
-      characterContinuity: [],
+      issueNumber: partial?.inputs?.issueNumber ?? 1,
+      seriesTitle: partial?.inputs?.seriesTitle ?? '',
+      genre: partial?.inputs?.genre ?? '',
+      logline: partial?.inputs?.logline ?? '',
+      arcSummary: partial?.inputs?.arcSummary ?? '',
+      visualLanguage: partial?.inputs?.visualLanguage ?? '',
+      worldNotes: partial?.inputs?.worldNotes ?? '',
+      characterRoster: Array.isArray(partial?.inputs?.characterRoster)
+        ? partial.inputs.characterRoster.map((character) => createCharacter(character))
+        : [],
     },
-    scenes: [],
-    assets: [],
-    prompts: [],
-    outputs: [],
-    metrics: {},
-    notes: [],
-    ...partial,
+    scenes: Array.isArray(partial?.scenes) ? partial.scenes.map((page) => createPage(page)) : [],
+    assets: Array.isArray(partial?.assets) ? partial.assets : [],
+    prompts: Array.isArray(partial?.prompts) ? partial.prompts : [],
+    outputs: Array.isArray(partial?.outputs) ? partial.outputs : [],
+    metrics: partial?.metrics ?? {},
+    notes: Array.isArray(partial?.notes) ? partial.notes.map((item) => String(item)) : [],
   }
 }
 
@@ -108,21 +178,6 @@ export function parseProjectPackage(raw: string): ComicBookProjectPackage {
 
   return createComicBookProject(parsed.title ?? 'Imported Comic Project', {
     ...parsed,
-    inputs: {
-      issueNumber: 1,
-      seriesTitle: '',
-      genre: '',
-      logline: '',
-      worldNotes: '',
-      characterContinuity: [],
-      ...(parsed.inputs ?? {}),
-    },
-    scenes: Array.isArray(parsed.scenes) ? parsed.scenes : [],
-    assets: Array.isArray(parsed.assets) ? parsed.assets : [],
-    prompts: Array.isArray(parsed.prompts) ? parsed.prompts : [],
-    outputs: Array.isArray(parsed.outputs) ? parsed.outputs : [],
-    metrics: parsed.metrics ?? {},
-    notes: Array.isArray(parsed.notes) ? parsed.notes : [],
   })
 }
 
