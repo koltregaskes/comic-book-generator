@@ -35,3 +35,9 @@ The current sample project shows the intended structure for:
 - page-to-panel breakdown
 - reusable prompt packaging
 - background generation queue tracking
+
+## Local-Only Files
+
+- `.autolab/` is used for internal AutoResearch and should remain untracked
+- `.env*` files are local-only
+- `.local/` and `*.local.md` are for planning notes and are ignored
