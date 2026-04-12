@@ -307,6 +307,10 @@ button.tiny {
   gap: 1rem;
 }
 
+.workspace-section--overview {
+  gap: 1.1rem;
+}
+
 .section-header {
   display: flex;
   justify-content: space-between;
@@ -384,6 +388,99 @@ button.tiny {
 .panel-grid {
   display: grid;
   gap: 1rem;
+}
+
+.workflow-map {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workflow-card {
+  width: 100%;
+  text-align: left;
+  border-radius: 24px;
+  padding: 1rem;
+  border: 1px solid rgba(255, 199, 171, 0.12);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(30, 10, 16, 0.82));
+  color: #fff7f3;
+  display: grid;
+  gap: 0.45rem;
+  align-content: start;
+}
+
+.workflow-card__step {
+  color: #ffc495;
+  letter-spacing: 0.22em;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.workflow-card strong {
+  font-size: 1.03rem;
+}
+
+.workflow-card p {
+  margin: 0;
+  color: #f0d2c5;
+  line-height: 1.5;
+}
+
+.workflow-card em {
+  font-style: normal;
+  margin-top: 0.35rem;
+  color: #ffd6b3;
+}
+
+.workflow-card.is-active {
+  border-color: rgba(255, 211, 132, 0.42);
+  box-shadow: 0 0 0 1px rgba(255, 211, 132, 0.08) inset;
+  background: linear-gradient(180deg, rgba(255, 212, 135, 0.14), rgba(42, 16, 20, 0.9));
+}
+
+.overview-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1.35fr 1fr 1fr;
+}
+
+.overview-card {
+  display: grid;
+  gap: 0.95rem;
+  align-content: start;
+}
+
+.overview-card--wide {
+  min-height: 100%;
+}
+
+.cast-preview {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.cast-preview__item,
+.cast-preview__empty {
+  border-radius: 18px;
+  padding: 0.85rem 0.95rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 199, 171, 0.1);
+}
+
+.cast-preview__item span,
+.cast-preview__empty {
+  color: #e7b6a4;
+}
+
+.cast-preview__item strong {
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.studio-metrics {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .card-grid {
@@ -465,6 +562,11 @@ button.tiny {
   .studio-rail {
     position: static;
   }
+
+  .workflow-map,
+  .overview-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 760px) {
@@ -481,7 +583,8 @@ button.tiny {
   }
 
   .field-grid,
-  .insight-grid {
+  .insight-grid,
+  .studio-metrics {
     grid-template-columns: 1fr;
   }
 

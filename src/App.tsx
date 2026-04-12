@@ -149,6 +149,45 @@ function App() {
     outputs: project.outputs.length,
   }
 
+  const workflowStages = [
+    {
+      id: 'overview' as WorkspaceSection,
+      title: 'Issue brief',
+      caption: 'Set the concept, arc, and production direction.',
+      count: 1,
+    },
+    {
+      id: 'characters' as WorkspaceSection,
+      title: 'Cast bible',
+      caption: 'Keep roles, continuity, and visual hooks together.',
+      count: sectionCounts.characters,
+    },
+    {
+      id: 'pages' as WorkspaceSection,
+      title: 'Page workbench',
+      caption: 'Design turns and panel beats one page at a time.',
+      count: sectionCounts.pages,
+    },
+    {
+      id: 'prompts' as WorkspaceSection,
+      title: 'Prompt studio',
+      caption: 'Build prompt packs and generation intent.',
+      count: sectionCounts.prompts,
+    },
+    {
+      id: 'queue' as WorkspaceSection,
+      title: 'Generation queue',
+      caption: 'Track ready, queued, and approved assets.',
+      count: sectionCounts.queue,
+    },
+    {
+      id: 'outputs' as WorkspaceSection,
+      title: 'Delivery dock',
+      caption: 'Collect exports, runbooks, and handoff notes.',
+      count: sectionCounts.outputs,
+    },
+  ]
+
   const handleImportClick = () => fileInputRef.current?.click()
 
   const handleCopy = async () => {
@@ -392,166 +431,248 @@ function App() {
 
         <section className="studio-main panel">
           {activeSection === 'overview' ? (
-            <div className="workspace-section">
+            <div className="workspace-section workspace-section--overview">
               <SectionHeader
                 kicker="Issue setup"
                 title="Concept and production direction"
                 description="Shape the issue at the same level you’ll use later for prompt generation and art runs."
               />
-              <div className="field-grid">
-                <Field
-                  label="Project title"
-                  value={project.title}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      title: value,
-                      slug: slugify(value),
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <Field
-                  label="Issue number"
-                  type="number"
-                  value={String(project.inputs.issueNumber)}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, issueNumber: Number(value) || 1 },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <Field
-                  label="Series title"
-                  value={project.inputs.seriesTitle}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, seriesTitle: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <Field
-                  label="Genre"
-                  value={project.inputs.genre}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, genre: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
+              <div className="workflow-map" aria-label="Studio workflow map">
+                {workflowStages.map((stage, index) => (
+                  <button
+                    key={stage.id}
+                    className={`workflow-card ${activeSection === stage.id ? 'is-active' : ''}`}
+                    onClick={() => setActiveSection(stage.id)}
+                    type="button"
+                  >
+                    <span className="workflow-card__step">0{index + 1}</span>
+                    <strong>{stage.title}</strong>
+                    <p>{stage.caption}</p>
+                    <em>{stage.count}</em>
+                  </button>
+                ))}
               </div>
-              <TextArea
-                label="Story summary"
-                value={project.summary}
-                onChange={(value) =>
-                  updateProject((current) => ({
-                    ...current,
-                    summary: value,
-                    updatedAt: new Date().toISOString(),
-                  }))
-                }
-              />
-              <div className="field-grid">
-                <TextArea
-                  label="Logline"
-                  value={project.inputs.logline}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, logline: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <TextArea
-                  label="Creative goal"
-                  value={project.inputs.creativeGoal}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, creativeGoal: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-              </div>
-              <div className="field-grid">
-                <TextArea
-                  label="Issue arc"
-                  value={project.inputs.arcSummary}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, arcSummary: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <TextArea
-                  label="Publishing goal"
-                  value={project.inputs.publishingGoal}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, publishingGoal: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-              </div>
-              <div className="field-grid">
-                <TextArea
-                  label="Visual language"
-                  value={project.inputs.visualLanguage}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, visualLanguage: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <TextArea
-                  label="World notes"
-                  value={project.inputs.worldNotes}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, worldNotes: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-              </div>
-              <div className="field-grid">
-                <Field
-                  label="Primary AI tool"
-                  value={project.inputs.primaryGenerator}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, primaryGenerator: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
-                <Field
-                  label="Background runner"
-                  value={project.inputs.secondaryGenerator}
-                  onChange={(value) =>
-                    updateProject((current) => ({
-                      ...current,
-                      inputs: { ...current.inputs, secondaryGenerator: value },
-                      updatedAt: new Date().toISOString(),
-                    }))
-                  }
-                />
+              <div className="overview-grid">
+                <article className="studio-card overview-card overview-card--wide">
+                  <div className="card-toolbar">
+                    <div>
+                      <strong>Issue brief</strong>
+                      <p className="card-caption">
+                        Set the core issue identity before the rest of the studio work expands.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="field-grid">
+                    <Field
+                      label="Project title"
+                      value={project.title}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          title: value,
+                          slug: slugify(value),
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                    <Field
+                      label="Issue number"
+                      type="number"
+                      value={String(project.inputs.issueNumber)}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, issueNumber: Number(value) || 1 },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="field-grid">
+                    <Field
+                      label="Series title"
+                      value={project.inputs.seriesTitle}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, seriesTitle: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                    <Field
+                      label="Genre"
+                      value={project.inputs.genre}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, genre: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                  </div>
+                  <TextArea
+                    label="Story summary"
+                    value={project.summary}
+                    onChange={(value) =>
+                      updateProject((current) => ({
+                        ...current,
+                        summary: value,
+                        updatedAt: new Date().toISOString(),
+                      }))
+                    }
+                  />
+                  <div className="field-grid">
+                    <TextArea
+                      label="Logline"
+                      value={project.inputs.logline}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, logline: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                    <TextArea
+                      label="Creative goal"
+                      value={project.inputs.creativeGoal}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, creativeGoal: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                  </div>
+                </article>
+
+                <article className="studio-card overview-card">
+                  <div className="card-toolbar">
+                    <div>
+                      <strong>Continuity board</strong>
+                      <p className="card-caption">
+                        Keep the cast bible, arc, and visual logic in one studio-facing lane.
+                      </p>
+                    </div>
+                    <button className="secondary tiny" onClick={addCharacter}>
+                      Add Character
+                    </button>
+                  </div>
+                  <TextArea
+                    label="Issue arc"
+                    value={project.inputs.arcSummary}
+                    onChange={(value) =>
+                      updateProject((current) => ({
+                        ...current,
+                        inputs: { ...current.inputs, arcSummary: value },
+                        updatedAt: new Date().toISOString(),
+                      }))
+                    }
+                  />
+                  <div className="field-grid">
+                    <TextArea
+                      label="Visual language"
+                      value={project.inputs.visualLanguage}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, visualLanguage: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                    <TextArea
+                      label="World notes"
+                      value={project.inputs.worldNotes}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, worldNotes: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                  </div>
+                  <div className="cast-preview">
+                    {project.inputs.characterRoster.slice(0, 4).map((character) => (
+                      <div className="cast-preview__item" key={character.id}>
+                        <strong>{character.name}</strong>
+                        <span>{character.role || 'Character role not set'}</span>
+                      </div>
+                    ))}
+                    {project.inputs.characterRoster.length === 0 ? (
+                      <div className="cast-preview__empty">
+                        Add the first character to start the continuity board.
+                      </div>
+                    ) : null}
+                  </div>
+                </article>
+
+                <article className="studio-card overview-card">
+                  <div className="card-toolbar">
+                    <div>
+                      <strong>Production lane</strong>
+                      <p className="card-caption">
+                        Tie the comic issue to the AI runners and delivery intent you’ll use later.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="field-grid">
+                    <Field
+                      label="Primary AI tool"
+                      value={project.inputs.primaryGenerator}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, primaryGenerator: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                    <Field
+                      label="Background runner"
+                      value={project.inputs.secondaryGenerator}
+                      onChange={(value) =>
+                        updateProject((current) => ({
+                          ...current,
+                          inputs: { ...current.inputs, secondaryGenerator: value },
+                          updatedAt: new Date().toISOString(),
+                        }))
+                      }
+                    />
+                  </div>
+                  <TextArea
+                    label="Publishing goal"
+                    value={project.inputs.publishingGoal}
+                    onChange={(value) =>
+                      updateProject((current) => ({
+                        ...current,
+                        inputs: { ...current.inputs, publishingGoal: value },
+                        updatedAt: new Date().toISOString(),
+                      }))
+                    }
+                  />
+                  <div className="studio-metrics">
+                    <MetricCard label="Pages" value={String(metrics.pages)} compact />
+                    <MetricCard label="Panels" value={formatPanelCount(metrics.panels)} compact />
+                    <MetricCard label="Prompt-ready" value={String(metrics.promptReady)} compact />
+                    <MetricCard label="Outputs" value={String(metrics.outputs)} compact />
+                  </div>
+                  <div className="inline-actions">
+                    <button className="secondary" onClick={() => setActiveSection('characters')}>
+                      Open cast
+                    </button>
+                    <button className="secondary" onClick={() => setActiveSection('pages')}>
+                      Open pages
+                    </button>
+                    <button className="secondary" onClick={() => setActiveSection('prompts')}>
+                      Open prompts
+                    </button>
+                  </div>
+                </article>
               </div>
             </div>
           ) : null}
