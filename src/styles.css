@@ -384,6 +384,56 @@ button.tiny {
   background: rgba(255, 255, 255, 0.04);
 }
 
+.workbench-summary-strip {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.workbench-mode-strip {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 1rem;
+}
+
+.workbench-mode {
+  width: 100%;
+  padding: 0.95rem 1rem;
+  text-align: left;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 199, 171, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff7f3;
+}
+
+.workbench-mode strong,
+.workbench-mode span {
+  display: block;
+}
+
+.workbench-mode strong {
+  font-size: 1rem;
+}
+
+.workbench-mode span {
+  margin-top: 0.25rem;
+  color: #e7b6a4;
+  letter-spacing: 0.06em;
+  font-size: 0.74rem;
+}
+
+.workbench-mode.is-active {
+  background: linear-gradient(135deg, rgba(255, 212, 135, 0.16), rgba(255, 112, 112, 0.12));
+  border-color: rgba(255, 211, 132, 0.34);
+}
+
+.workbench-mode-panel {
+  display: grid;
+  gap: 1rem;
+}
+
 .card-grid,
 .panel-grid {
   display: grid;
@@ -491,6 +541,10 @@ button.tiny {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.panel-grid--lettering {
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
 .panel-card {
   border-radius: 20px;
   padding: 0.9rem;
@@ -564,7 +618,9 @@ button.tiny {
   }
 
   .workflow-map,
-  .overview-grid {
+  .overview-grid,
+  .workbench-summary-strip,
+  .workbench-mode-strip {
     grid-template-columns: 1fr;
   }
 }

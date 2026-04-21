@@ -1215,6 +1215,8 @@ type SectionHeaderProps = {
   onAction?: () => void
 }
 
+type PageWorkbenchMode = 'brief' | 'panels' | 'lettering'
+
 function SectionHeader({ kicker, title, description, actionLabel, onAction }: SectionHeaderProps) {
   return (
     <div className="section-header">
@@ -1241,6 +1243,18 @@ type PageWorkbenchProps = {
 }
 
 function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: PageWorkbenchProps) {
+  const [activeMode, setActiveMode] = useState<PageWorkbenchMode>('brief')
+
+  useEffect(() => {
+    setActiveMode('brief')
+  }, [page.id])
+
+  const workbenchModes: { id: PageWorkbenchMode; label: string; caption: string }[] = [
+    { id: 'brief', label: 'Page Brief', caption: 'Story turn, layout, and direction' },
+    { id: 'panels', label: 'Panel Beats', caption: 'Action and prompt drafting' },
+    { id: 'lettering', label: 'Dialogue Pass', caption: 'Captions, balloons, and copy' },
+  ]
+
   return (
     <article className="workbench-card">
       <div className="card-toolbar">
@@ -1260,91 +1274,141 @@ function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: 
         </div>
       </div>
 
-      <div className="field-grid">
-        <Field label="Page title" value={page.title} onChange={(value) => onChange({ title: value })} />
-        <Field
-          label="Page number"
-          type="number"
-          value={String(page.pageNumber)}
-          onChange={(value) => onChange({ pageNumber: Number(value) || 1 })}
-        />
+      <div className="workbench-summary-strip">
+        <div className="metric-card compact">
+          <span>Location</span>
+          <strong>{page.location || 'Set scene'}</strong>
+        </div>
+        <div className="metric-card compact">
+          <span>Turn moment</span>
+          <strong>{page.turnMoment ? 'Set' : 'Pending'}</strong>
+        </div>
+        <div className="metric-card compact">
+          <span>Panel beats</span>
+          <strong>{page.panels.length}</strong>
+        </div>
       </div>
-      <div className="field-grid">
-        <Field label="Location" value={page.location} onChange={(value) => onChange({ location: value })} />
-        <Field
-          label="Panel count"
-          type="number"
-          value={String(page.panels.length)}
-          onChange={() => undefined}
-          disabled
-        />
-      </div>
-      <TextArea label="Page summary" value={page.summary} onChange={(value) => onChange({ summary: value })} />
-      <div className="field-grid">
-        <TextArea
-          label="Turn moment"
-          value={page.turnMoment}
-          onChange={(value) => onChange({ turnMoment: value })}
-        />
-        <TextArea
-          label="Dialogue notes"
-          value={page.dialogueNotes}
-          onChange={(value) => onChange({ dialogueNotes: value })}
-        />
-      </div>
-      <TextArea
-        label="Lettering notes"
-        value={page.letteringNotes}
-        onChange={(value) => onChange({ letteringNotes: value })}
-      />
 
-      <div className="subsection-heading">
-        <span>Panels</span>
-        <strong>{page.panels.length} total</strong>
-      </div>
-      <div className="panel-grid">
-        {page.panels.map((panel) => (
-          <div className="panel-card" key={panel.id}>
-            <div className="field-grid">
-              <Field
-                label="Panel #"
-                type="number"
-                value={String(panel.panelNumber)}
-                onChange={(value) =>
-                  onUpdatePanel(panel.id, { panelNumber: Number(value) || panel.panelNumber })
-                }
-              />
-              <Field
-                label="Framing"
-                value={panel.framing}
-                onChange={(value) => onUpdatePanel(panel.id, { framing: value })}
-              />
-            </div>
-            <TextArea
-              label="Action"
-              value={panel.action}
-              onChange={(value) => onUpdatePanel(panel.id, { action: value })}
-            />
-            <div className="field-grid">
-              <TextArea
-                label="Dialogue"
-                value={panel.dialogue}
-                onChange={(value) => onUpdatePanel(panel.id, { dialogue: value })}
-              />
-              <TextArea
-                label="Caption"
-                value={panel.caption}
-                onChange={(value) => onUpdatePanel(panel.id, { caption: value })}
-              />
-            </div>
-            <TextArea
-              label="Panel prompt"
-              value={panel.prompt}
-              onChange={(value) => onUpdatePanel(panel.id, { prompt: value })}
-            />
-          </div>
+      <div className="workbench-mode-strip" role="tablist" aria-label="Page workbench modes">
+        {workbenchModes.map((mode) => (
+          <button
+            key={mode.id}
+            className={`workbench-mode ${activeMode === mode.id ? 'is-active' : ''}`}
+            onClick={() => setActiveMode(mode.id)}
+            type="button"
+          >
+            <strong>{mode.label}</strong>
+            <span>{mode.caption}</span>
+          </button>
         ))}
       </div>
+
+      {activeMode === 'brief' ? (
+        <div className="workbench-mode-panel">
+          <div className="field-grid">
+            <Field label="Page title" value={page.title} onChange={(value) => onChange({ title: value })} />
+            <Field
+              label="Page number"
+              type="number"
+              value={String(page.pageNumber)}
+              onChange={(value) => onChange({ pageNumber: Number(value) || 1 })}
+            />
+          </div>
+          <div className="field-grid">
+            <Field label="Location" value={page.location} onChange={(value) => onChange({ location: value })} />
+            <Field
+              label="Panel count"
+              type="number"
+              value={String(page.panels.length)}
+              onChange={() => undefined}
+              disabled
+            />
+          </div>
+          <TextArea label="Page summary" value={page.summary} onChange={(value) => onChange({ summary: value })} />
+          <TextArea
+            label="Turn moment"
+            value={page.turnMoment}
+            onChange={(value) => onChange({ turnMoment: value })}
+          />
+        </div>
+      ) : null}
+
+      {activeMode === 'panels' ? (
+        <div className="workbench-mode-panel">
+          <div className="subsection-heading">
+            <span>Panels</span>
+            <strong>{page.panels.length} total</strong>
+          </div>
+          <div className="panel-grid">
+            {page.panels.map((panel) => (
+              <div className="panel-card" key={panel.id}>
+                <div className="field-grid">
+                  <Field
+                    label="Panel #"
+                    type="number"
+                    value={String(panel.panelNumber)}
+                    onChange={(value) =>
+                      onUpdatePanel(panel.id, { panelNumber: Number(value) || panel.panelNumber })
+                    }
+                  />
+                  <Field
+                    label="Framing"
+                    value={panel.framing}
+                    onChange={(value) => onUpdatePanel(panel.id, { framing: value })}
+                  />
+                </div>
+                <TextArea
+                  label="Action"
+                  value={panel.action}
+                  onChange={(value) => onUpdatePanel(panel.id, { action: value })}
+                />
+                <TextArea
+                  label="Panel prompt"
+                  value={panel.prompt}
+                  onChange={(value) => onUpdatePanel(panel.id, { prompt: value })}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {activeMode === 'lettering' ? (
+        <div className="workbench-mode-panel">
+          <div className="field-grid">
+            <TextArea
+              label="Dialogue notes"
+              value={page.dialogueNotes}
+              onChange={(value) => onChange({ dialogueNotes: value })}
+            />
+            <TextArea
+              label="Lettering notes"
+              value={page.letteringNotes}
+              onChange={(value) => onChange({ letteringNotes: value })}
+            />
+          </div>
+          <div className="panel-grid panel-grid--lettering">
+            {page.panels.map((panel) => (
+              <div className="panel-card" key={panel.id}>
+                <div className="subsection-heading">
+                  <span>Panel {panel.panelNumber}</span>
+                  <strong>{panel.framing || 'Set framing'}</strong>
+                </div>
+                <TextArea
+                  label="Dialogue"
+                  value={panel.dialogue}
+                  onChange={(value) => onUpdatePanel(panel.id, { dialogue: value })}
+                />
+                <TextArea
+                  label="Caption"
+                  value={panel.caption}
+                  onChange={(value) => onUpdatePanel(panel.id, { caption: value })}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </article>
   )
 }
