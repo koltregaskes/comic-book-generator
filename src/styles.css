@@ -376,6 +376,7 @@ button.tiny {
 
 .workbench-card,
 .studio-card,
+.handoff-card,
 .sidebar-card,
 .empty-state {
   border-radius: 24px;
@@ -533,6 +534,61 @@ button.tiny {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.handoff-card {
+  display: grid;
+  gap: 0.9rem;
+  background: linear-gradient(135deg, rgba(255, 212, 135, 0.1), rgba(255, 255, 255, 0.04));
+}
+
+.handoff-card strong {
+  display: block;
+  margin-top: 0.18rem;
+}
+
+.handoff-summary {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.checklist-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.checklist-item {
+  border-radius: 18px;
+  padding: 0.85rem;
+  border: 1px solid rgba(255, 199, 171, 0.12);
+  background: rgba(20, 8, 12, 0.52);
+}
+
+.checklist-item span {
+  display: block;
+  color: #efbfab;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.checklist-item strong {
+  margin-top: 0.18rem;
+}
+
+.checklist-item p {
+  margin: 0.35rem 0 0;
+  color: #f0d2c5;
+}
+
+.checklist-item--pass {
+  border-color: rgba(157, 255, 182, 0.28);
+}
+
+.checklist-item--needs-work {
+  border-color: rgba(255, 212, 135, 0.34);
+}
+
 .card-grid {
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
@@ -619,6 +675,7 @@ button.tiny {
 
   .workflow-map,
   .overview-grid,
+  .handoff-summary,
   .workbench-summary-strip,
   .workbench-mode-strip {
     grid-template-columns: 1fr;

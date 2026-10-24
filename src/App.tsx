@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import {
+  buildPublishingPackageManifest,
+  buildQueueHandoffPackage,
   createAsset,
   createCharacter,
   createOutput,
   createPage,
   createPanel,
   createPromptPack,
+  exportPublishingPackageManifest,
   exportProjectPackage,
+  exportQueueHandoffPackage,
   formatPanelCount,
   parseProjectPackage,
+  promoteAssetForPublishing,
   slugify,
   type CharacterProfile,
   type ComicAsset,
@@ -122,6 +127,8 @@ function App() {
   const selectedPage = project.scenes.find((page) => page.id === selectedPageId) ?? null
   const selectedPrompt = project.prompts.find((prompt) => prompt.id === selectedPromptId) ?? null
   const selectedAsset = project.assets.find((asset) => asset.id === selectedAssetId) ?? null
+  const queueHandoff = useMemo(() => buildQueueHandoffPackage(project), [project])
+  const publishingManifest = useMemo(() => buildPublishingPackageManifest(project), [project])
 
   const metrics = useMemo(() => {
     const totalPanels = project.scenes.reduce((sum, page) => sum + page.panels.length, 0)
@@ -194,6 +201,30 @@ function App() {
     try {
       await navigator.clipboard.writeText(JSON.stringify(project, null, 2))
       setImportMessage('Copied package JSON')
+    } catch (error) {
+      setImportMessage(
+        error instanceof Error ? error.message : 'Copy failed. Check browser clipboard permissions.',
+      )
+    }
+  }
+
+  const handleCopyQueueHandoff = async () => {
+    try {
+      const handoff = buildQueueHandoffPackage(project)
+      await navigator.clipboard.writeText(JSON.stringify(handoff, null, 2))
+      setImportMessage('Copied queue handoff JSON')
+    } catch (error) {
+      setImportMessage(
+        error instanceof Error ? error.message : 'Copy failed. Check browser clipboard permissions.',
+      )
+    }
+  }
+
+  const handleCopyPublishingManifest = async () => {
+    try {
+      const manifest = buildPublishingPackageManifest(project)
+      await navigator.clipboard.writeText(JSON.stringify(manifest, null, 2))
+      setImportMessage('Copied publishing package JSON')
     } catch (error) {
       setImportMessage(
         error instanceof Error ? error.message : 'Copy failed. Check browser clipboard permissions.',
@@ -773,6 +804,7 @@ function App() {
 
                 {selectedPage ? (
                   <PageWorkbench
+                    key={selectedPage.id}
                     page={selectedPage}
                     onChange={(patch) => updatePage(project, selectedPage.id, persist, patch)}
                     onRemove={() =>
@@ -932,6 +964,38 @@ function App() {
                 actionLabel="Add Asset"
                 onAction={addAsset}
               />
+              <article className="handoff-card">
+                <div className="card-toolbar">
+                  <div>
+                    <span className="panel-kicker">Queue handoff</span>
+                    <strong>Durable export for publishing and comic-video import</strong>
+                    <p className="card-caption">
+                      Builds a local JSON artifact with asset status, prompt-pack links, downstream targets,
+                      output notes, and page/panel import data.
+                    </p>
+                  </div>
+                  <div className="inline-actions">
+                    <button className="secondary tiny" onClick={handleCopyQueueHandoff}>
+                      Copy Handoff JSON
+                    </button>
+                    <button
+                      className="ghost tiny"
+                      onClick={() => {
+                        exportQueueHandoffPackage(project)
+                        setImportMessage('Exported queue handoff JSON')
+                      }}
+                    >
+                      Export Handoff
+                    </button>
+                  </div>
+                </div>
+                <div className="handoff-summary">
+                  <MetricCard label="Assets" value={String(queueHandoff.summary.totalAssets)} compact />
+                  <MetricCard label="Linked" value={String(queueHandoff.summary.linkedAssets)} compact />
+                  <MetricCard label="Approved" value={String(queueHandoff.summary.approvedAssets)} compact />
+                  <MetricCard label="Blocked" value={String(queueHandoff.summary.blockedAssets)} compact />
+                </div>
+              </article>
               <div className="pages-layout">
                 <div className="page-browser">
                   {project.assets.map((asset) => (
@@ -957,18 +1021,33 @@ function App() {
                           Track what is ready, what is queued, and what has been approved back into the issue.
                         </p>
                       </div>
-                      <button
-                        className="ghost tiny"
-                        onClick={() =>
-                          updateProject((current) => ({
-                            ...current,
-                            assets: current.assets.filter((item) => item.id !== selectedAsset.id),
-                            updatedAt: new Date().toISOString(),
-                          }))
-                        }
-                      >
-                        Remove Asset
-                      </button>
+                      <div className="inline-actions">
+                        {selectedAsset.status !== 'approved' ? (
+                          <button
+                            className="secondary tiny"
+                            onClick={() => {
+                              updateProject((current) =>
+                                promoteAssetForPublishing(current, selectedAsset.id),
+                              )
+                              setImportMessage(`${selectedAsset.label} promoted to approved`)
+                            }}
+                          >
+                            Promote Approved
+                          </button>
+                        ) : null}
+                        <button
+                          className="ghost tiny"
+                          onClick={() =>
+                            updateProject((current) => ({
+                              ...current,
+                              assets: current.assets.filter((item) => item.id !== selectedAsset.id),
+                              updatedAt: new Date().toISOString(),
+                            }))
+                          }
+                        >
+                          Remove Asset
+                        </button>
+                      </div>
                     </div>
                     <div className="field-grid">
                       <Field
@@ -1037,6 +1116,59 @@ function App() {
                 actionLabel="Add Output"
                 onAction={addOutput}
               />
+              <article className="handoff-card">
+                <div className="card-toolbar">
+                  <div>
+                    <span className="panel-kicker">Publishing package</span>
+                    <strong>{publishingManifest.readiness.goNoGo} for final publishing export</strong>
+                    <p className="card-caption">
+                      The publishing manifest combines the queue handoff with a local review checklist,
+                      export artifact list, approval state, and downstream comic-video import payload.
+                    </p>
+                  </div>
+                  <div className="inline-actions">
+                    <button className="secondary tiny" onClick={handleCopyPublishingManifest}>
+                      Copy Publishing JSON
+                    </button>
+                    <button
+                      className="ghost tiny"
+                      onClick={() => {
+                        exportPublishingPackageManifest(project)
+                        setImportMessage('Exported publishing package JSON')
+                      }}
+                    >
+                      Export Publishing Package
+                    </button>
+                  </div>
+                </div>
+                <div className="handoff-summary">
+                  <MetricCard
+                    label="Checklist"
+                    value={`${publishingManifest.readiness.checklistPassed}/${publishingManifest.readiness.checklistTotal}`}
+                    compact
+                  />
+                  <MetricCard
+                    label="Readiness"
+                    value={`${publishingManifest.readiness.percentComplete}%`}
+                    compact
+                  />
+                  <MetricCard
+                    label="Approved"
+                    value={`${publishingManifest.readiness.approvedAssets}/${publishingManifest.readiness.totalAssets}`}
+                    compact
+                  />
+                  <MetricCard label="Blocked" value={String(publishingManifest.readiness.blockedAssets)} compact />
+                </div>
+                <div className="checklist-grid">
+                  {publishingManifest.reviewChecklist.map((item) => (
+                    <div className={`checklist-item checklist-item--${item.status}`} key={item.id}>
+                      <span>{item.category}</span>
+                      <strong>{item.label}</strong>
+                      <p>{item.summary}</p>
+                    </div>
+                  ))}
+                </div>
+              </article>
               <div className="card-grid">
                 {project.outputs.map((output) => (
                   <article className="studio-card" key={output.id}>
@@ -1244,10 +1376,6 @@ type PageWorkbenchProps = {
 
 function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: PageWorkbenchProps) {
   const [activeMode, setActiveMode] = useState<PageWorkbenchMode>('brief')
-
-  useEffect(() => {
-    setActiveMode('brief')
-  }, [page.id])
 
   const workbenchModes: { id: PageWorkbenchMode; label: string; caption: string }[] = [
     { id: 'brief', label: 'Page Brief', caption: 'Story turn, layout, and direction' },
