@@ -237,6 +237,25 @@ export function slugify(value: string) {
     .replace(/^-+|-+$/g, '')
 }
 
+export function removePanelFromPage(page: ComicPage, panelId: string): ComicPage {
+  if (!page.panels.some((panel) => panel.id === panelId)) {
+    return page
+  }
+
+  const panels = page.panels
+    .filter((panel) => panel.id !== panelId)
+    .map((panel, index) => ({ ...panel, panelNumber: index + 1 }))
+
+  return { ...page, panels, panelCount: panels.length }
+}
+
+export function addPanelToPage(page: ComicPage, partial?: Partial<ComicPanel>): ComicPage {
+  const panelNumber = page.panels.reduce((highest, panel) => Math.max(highest, panel.panelNumber), 0) + 1
+  const panels = [...page.panels, createPanel({ ...partial, panelNumber })]
+
+  return { ...page, panels, panelCount: panels.length }
+}
+
 export function createPanel(partial?: Partial<ComicPanel>): ComicPanel {
   return {
     id: partial?.id ?? crypto.randomUUID(),
@@ -257,7 +276,7 @@ export function createPage(partial?: Partial<ComicPage>): ComicPage {
     pageNumber: partial?.pageNumber ?? 1,
     title: partial?.title ?? 'New page',
     summary: partial?.summary ?? '',
-    panelCount: panels.length || partial?.panelCount || 4,
+    panelCount: panels.length,
     location: partial?.location ?? '',
     turnMoment: partial?.turnMoment ?? '',
     dialogueNotes: partial?.dialogueNotes ?? '',
@@ -469,7 +488,7 @@ export function buildQueueHandoffPackage(
     publishingHandoff: {
       outputs: project.outputs,
       reviewFocus: project.metrics.reviewFocus,
-      notes: project.notes,
+      notes: project.notes.map((note) => note.trim()).filter(Boolean),
     },
     comicVideoImport: {
       pageCount: project.scenes.length,
