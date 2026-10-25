@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 
 import {
+  addPanelToPage,
   buildPublishingPackageManifest,
   buildQueueHandoffPackage,
   createComicBookProject,
@@ -12,6 +13,7 @@ import {
   parseQueueHandoffPackage,
   parseProjectPackage,
   promoteAssetForPublishing,
+  removePanelFromPage,
 } from '../src/project-package.ts'
 
 const traceableComicBookProject = createComicBookProject('Neon Tomb Issue One', {
@@ -112,6 +114,42 @@ describe('comic-book creative project package', () => {
     const handoff = buildQueueHandoffPackage(project, '2026-04-27T01:55:00.000Z')
 
     assert.deepEqual(handoff.publishingHandoff.notes, ['Keep the glyph'])
+  })
+
+  it('keeps panel numbers unique after a non-final panel is removed and another is added', () => {
+    const page = createPage({
+      id: 'page-1',
+      panels: [
+        createPanel({ id: 'panel-1', panelNumber: 1, dialogue: 'Open on the archive.' }),
+        createPanel({ id: 'panel-2', panelNumber: 2, dialogue: 'The door answers.' }),
+      ],
+    })
+
+    const afterRemoval = removePanelFromPage(page, 'panel-1')
+    assert.equal(afterRemoval.panels.length, 1)
+    assert.equal(afterRemoval.panels[0]?.id, 'panel-2')
+    assert.equal(afterRemoval.panels[0]?.panelNumber, 1)
+    assert.equal(afterRemoval.panels[0]?.dialogue, 'The door answers.')
+    assert.equal(afterRemoval.panelCount, 1)
+
+    const afterAdd = addPanelToPage(afterRemoval, { id: 'panel-3', dialogue: 'Vera steps through.' })
+    const numbers = afterAdd.panels.map((panel) => panel.panelNumber)
+    assert.deepEqual(
+      afterAdd.panels.map((panel) => panel.id),
+      ['panel-2', 'panel-3'],
+    )
+    assert.deepEqual(numbers, [1, 2])
+    assert.equal(new Set(numbers).size, numbers.length)
+    assert.equal(afterAdd.panelCount, 2)
+
+    const handoff = buildQueueHandoffPackage(
+      createComicBookProject('Panel numbers', { scenes: [afterAdd] }),
+      '2026-04-27T01:55:00.000Z',
+    )
+    assert.deepEqual(
+      handoff.comicVideoImport.pages[0]?.panels.map((panel) => panel.panelNumber),
+      [1, 2],
+    )
   })
 
   it('normalizes imported panel counts to the real panel list', () => {

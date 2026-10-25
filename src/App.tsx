@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import {
+  addPanelToPage,
   buildPublishingPackageManifest,
   buildQueueHandoffPackage,
   createAsset,
@@ -14,6 +15,7 @@ import {
   formatPanelCount,
   parseProjectPackage,
   promoteAssetForPublishing,
+  removePanelFromPage,
   slugify,
   type CharacterProfile,
   type ComicAsset,
@@ -318,15 +320,7 @@ function App() {
   const addPanel = (pageId: string) => {
     updateProject((current) => ({
       ...current,
-      scenes: current.scenes.map((page) =>
-        page.id === pageId
-          ? {
-              ...page,
-              panels: [...page.panels, createPanel({ panelNumber: page.panels.length + 1 })],
-              panelCount: page.panels.length + 1,
-            }
-          : page,
-      ),
+      scenes: current.scenes.map((page) => (page.id === pageId ? addPanelToPage(page) : page)),
       updatedAt: new Date().toISOString(),
     }))
   }
@@ -334,14 +328,9 @@ function App() {
   const removePanel = (pageId: string, panelId: string) => {
     updateProject((current) => ({
       ...current,
-      scenes: current.scenes.map((page) => {
-        if (page.id !== pageId) {
-          return page
-        }
-
-        const panels = page.panels.filter((panel) => panel.id !== panelId)
-        return { ...page, panels, panelCount: panels.length }
-      }),
+      scenes: current.scenes.map((page) =>
+        page.id === pageId ? removePanelFromPage(page, panelId) : page,
+      ),
       updatedAt: new Date().toISOString(),
     }))
   }
