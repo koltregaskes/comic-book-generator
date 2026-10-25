@@ -7,6 +7,7 @@ import {
   createComicBookProject,
   createPage,
   createPanel,
+  duplicatePage,
   formatPanelCount,
   parsePublishingPackageManifest,
   parseQueueHandoffPackage,
@@ -216,6 +217,49 @@ describe('comic-book creative project package', () => {
       manifest.exportManifest.artifacts.some((artifact) => artifact.filename === 'neon-tomb-issue-one-publishing-package.json'),
       true,
     )
+  })
+
+  it('duplicates a page with new ids and the same panel content', () => {
+    const page = createPage({
+      id: 'page-vault',
+      pageNumber: 2,
+      title: 'Vault',
+      summary: 'The door opens.',
+      location: 'Archive',
+      turnMoment: 'The lock fails.',
+      dialogueNotes: 'Whisper.',
+      letteringNotes: 'Small balloons.',
+      panels: [
+        createPanel({
+          id: 'panel-lock',
+          panelNumber: 1,
+          framing: 'close',
+          action: 'Hand on the lock.',
+          dialogue: 'Now.',
+          caption: 'Below.',
+          prompt: 'Close-up hand.',
+        }),
+      ],
+    })
+    const copy = duplicatePage(page, 3)
+
+    assert.notEqual(copy.id, page.id)
+    assert.equal(copy.pageNumber, 3)
+    assert.equal(copy.title, page.title)
+    assert.equal(copy.summary, page.summary)
+    assert.equal(copy.location, page.location)
+    assert.equal(copy.turnMoment, page.turnMoment)
+    assert.equal(copy.dialogueNotes, page.dialogueNotes)
+    assert.equal(copy.letteringNotes, page.letteringNotes)
+    assert.equal(copy.panelCount, 1)
+    assert.equal(copy.panels.length, 1)
+    assert.notEqual(copy.panels[0]?.id, page.panels[0]?.id)
+    assert.equal(copy.panels[0]?.action, 'Hand on the lock.')
+    assert.equal(copy.panels[0]?.dialogue, 'Now.')
+    assert.equal(copy.panels[0]?.caption, 'Below.')
+    assert.equal(copy.panels[0]?.prompt, 'Close-up hand.')
+    page.panels[0]!.action = 'changed'
+    assert.equal(copy.panels[0]?.action, 'Hand on the lock.')
   })
 
   it('promotes reviewed assets into a GO publishing manifest without live connectors', () => {
