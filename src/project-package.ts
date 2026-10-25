@@ -249,6 +249,28 @@ export function createPanel(partial?: Partial<ComicPanel>): ComicPanel {
   }
 }
 
+export function duplicatePage(page: ComicPage, pageNumber = page.pageNumber + 1): ComicPage {
+  return createPage({
+    pageNumber,
+    title: page.title,
+    summary: page.summary,
+    location: page.location,
+    turnMoment: page.turnMoment,
+    dialogueNotes: page.dialogueNotes,
+    letteringNotes: page.letteringNotes,
+    panels: page.panels.map((panel) =>
+      createPanel({
+        panelNumber: panel.panelNumber,
+        framing: panel.framing,
+        action: panel.action,
+        dialogue: panel.dialogue,
+        caption: panel.caption,
+        prompt: panel.prompt,
+      }),
+    ),
+  })
+}
+
 export function createPage(partial?: Partial<ComicPage>): ComicPage {
   const panels = Array.isArray(partial?.panels) ? partial.panels.map((panel) => createPanel(panel)) : []
 

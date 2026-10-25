@@ -6,6 +6,7 @@ import {
   createCharacter,
   createOutput,
   createPage,
+  duplicatePage,
   createPanel,
   createPromptPack,
   exportPublishingPackageManifest,
@@ -284,6 +285,32 @@ function App() {
       updatedAt: new Date().toISOString(),
     }))
     setSelectedPageId(nextPage.id)
+    setActiveSection('pages')
+  }
+
+  const duplicateSelectedPage = () => {
+    if (!selectedPage) return
+
+    const copy = duplicatePage(selectedPage, selectedPage.pageNumber + 1)
+
+    updateProject((current) => {
+      const index = current.scenes.findIndex((page) => page.id === selectedPage.id)
+      if (index < 0) return current
+
+      return {
+        ...current,
+        scenes: [
+          ...current.scenes.slice(0, index + 1),
+          copy,
+          ...current.scenes.slice(index + 1).map((page) => ({
+            ...page,
+            pageNumber: page.pageNumber + 1,
+          })),
+        ],
+        updatedAt: new Date().toISOString(),
+      }
+    })
+    setSelectedPageId(copy.id)
     setActiveSection('pages')
   }
 
@@ -815,6 +842,7 @@ function App() {
                       }))
                     }
                     onAddPanel={() => addPanel(selectedPage.id)}
+                    onDuplicate={duplicateSelectedPage}
                     onUpdatePanel={(panelId, patch) =>
                       updatePanel(project, selectedPage.id, panelId, persist, patch)
                     }
@@ -1371,10 +1399,11 @@ type PageWorkbenchProps = {
   onChange: (patch: Partial<ComicPage>) => void
   onRemove: () => void
   onAddPanel: () => void
+  onDuplicate: () => void
   onUpdatePanel: (panelId: string, patch: Partial<ComicPanel>) => void
 }
 
-function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: PageWorkbenchProps) {
+function PageWorkbench({ page, onChange, onRemove, onAddPanel, onDuplicate, onUpdatePanel }: PageWorkbenchProps) {
   const [activeMode, setActiveMode] = useState<PageWorkbenchMode>('brief')
 
   const workbenchModes: { id: PageWorkbenchMode; label: string; caption: string }[] = [
@@ -1395,6 +1424,9 @@ function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: 
         <div className="inline-actions">
           <button className="secondary tiny" onClick={onAddPanel}>
             Add Panel
+          </button>
+          <button className="secondary tiny" onClick={onDuplicate}>
+            Duplicate Page
           </button>
           <button className="ghost tiny" onClick={onRemove}>
             Remove Page
