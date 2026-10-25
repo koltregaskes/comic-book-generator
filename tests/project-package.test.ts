@@ -91,6 +91,29 @@ describe('comic-book creative project package', () => {
     assert.equal(imported.outputs.some((output) => output.format === 'json'), true)
   })
 
+  it('normalizes a page with no panels to a zero panel count', () => {
+    const imported = parseProjectPackage(
+      JSON.stringify({
+        formatVersion: 'creative-project-package-v1',
+        projectType: 'comic-book',
+        title: 'Empty page',
+        scenes: [{ id: 'empty-page', panelCount: 99, panels: [] }],
+      }),
+    )
+
+    assert.equal(imported.scenes[0]?.panelCount, 0)
+    assert.equal(imported.scenes[0]?.panels.length, 0)
+  })
+
+  it('omits blank working notes from the queue handoff', () => {
+    const project = createComicBookProject('Notes', {
+      notes: ['  Keep the glyph  ', '', '   '],
+    })
+    const handoff = buildQueueHandoffPackage(project, '2026-04-27T01:55:00.000Z')
+
+    assert.deepEqual(handoff.publishingHandoff.notes, ['Keep the glyph'])
+  })
+
   it('normalizes imported panel counts to the real panel list', () => {
     const stalePanelCountPackage = createComicBookProject('Panel Count Regression', {
       scenes: [

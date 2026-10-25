@@ -66,11 +66,34 @@ function loadInitialProject() {
   }
 }
 
-function splitLines(value: string) {
-  return value
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean)
+function notesFromEditor(value: string) {
+  if (value === '') {
+    return []
+  }
+
+  return value.split('\n')
+}
+
+function cleanNotes(notes: string[]) {
+  return notes.map((note) => note.trim()).filter(Boolean)
+}
+
+function traceabilityMessage(item: {
+  traceabilityStatus: 'linked' | 'missing-prompt-pack' | 'target-mismatch'
+  promptPackLabel: string
+  targetAsset: string
+  label: string
+}) {
+  if (item.traceabilityStatus === 'linked') {
+    return item.promptPackLabel ? `Linked to ${item.promptPackLabel}.` : 'Linked to a prompt pack.'
+  }
+
+  if (item.traceabilityStatus === 'missing-prompt-pack') {
+    return 'Blocked: choose a prompt pack so this asset stays traceable.'
+  }
+
+  const packName = item.promptPackLabel || 'The linked prompt pack'
+  return `Blocked: ${packName} targets "${item.targetAsset}", not "${item.label}".`
 }
 
 function App() {
@@ -127,8 +150,13 @@ function App() {
   const selectedPage = project.scenes.find((page) => page.id === selectedPageId) ?? null
   const selectedPrompt = project.prompts.find((prompt) => prompt.id === selectedPromptId) ?? null
   const selectedAsset = project.assets.find((asset) => asset.id === selectedAssetId) ?? null
+  const assetLabels = Array.from(
+    new Set(project.assets.map((asset) => asset.label.trim()).filter(Boolean)),
+  )
   const queueHandoff = useMemo(() => buildQueueHandoffPackage(project), [project])
   const publishingManifest = useMemo(() => buildPublishingPackageManifest(project), [project])
+  const selectedAssetHandoff =
+    selectedAsset ? queueHandoff.items.find((item) => item.id === selectedAsset.id) ?? null : null
 
   const metrics = useMemo(() => {
     const totalPanels = project.scenes.reduce((sum, page) => sum + page.panels.length, 0)
@@ -299,6 +327,21 @@ function App() {
             }
           : page,
       ),
+      updatedAt: new Date().toISOString(),
+    }))
+  }
+
+  const removePanel = (pageId: string, panelId: string) => {
+    updateProject((current) => ({
+      ...current,
+      scenes: current.scenes.map((page) => {
+        if (page.id !== pageId) {
+          return page
+        }
+
+        const panels = page.panels.filter((panel) => panel.id !== panelId)
+        return { ...page, panels, panelCount: panels.length }
+      }),
       updatedAt: new Date().toISOString(),
     }))
   }
@@ -815,6 +858,7 @@ function App() {
                       }))
                     }
                     onAddPanel={() => addPanel(selectedPage.id)}
+                    onRemovePanel={(panelId) => removePanel(selectedPage.id, panelId)}
                     onUpdatePanel={(panelId, patch) =>
                       updatePanel(project, selectedPage.id, panelId, persist, patch)
                     }
@@ -911,10 +955,19 @@ function App() {
                     <Field
                       label="Target asset"
                       value={selectedPrompt.targetAsset}
+                      suggestions={assetLabels}
+                      suggestionListId="asset-label-suggestions"
                       onChange={(value) =>
                         updatePrompt(project, selectedPrompt.id, persist, { targetAsset: value })
                       }
                     />
+                    {selectedPrompt.targetAsset.trim() &&
+                    !assetLabels.includes(selectedPrompt.targetAsset.trim()) ? (
+                      <p className="card-caption">
+                        No queued asset uses this target label. Match it to an asset label to clear a
+                        target mismatch.
+                      </p>
+                    ) : null}
                     <TextArea
                       label="Cover prompt"
                       value={selectedPrompt.coverPrompt}
@@ -998,18 +1051,24 @@ function App() {
               </article>
               <div className="pages-layout">
                 <div className="page-browser">
-                  {project.assets.map((asset) => (
-                    <button
-                      key={asset.id}
-                      className={`page-chip ${selectedAssetId === asset.id ? 'is-selected' : ''}`}
-                      onClick={() => setSelectedAssetId(asset.id)}
-                    >
-                      <strong>{asset.label}</strong>
-                      <span>
-                        {asset.source} · {asset.status}
-                      </span>
-                    </button>
-                  ))}
+                  {project.assets.map((asset) => {
+                    const handoffItem = queueHandoff.items.find((item) => item.id === asset.id)
+                    const blocked = handoffItem?.traceabilityStatus !== 'linked'
+
+                    return (
+                      <button
+                        key={asset.id}
+                        className={`page-chip ${selectedAssetId === asset.id ? 'is-selected' : ''}`}
+                        onClick={() => setSelectedAssetId(asset.id)}
+                      >
+                        <strong>{asset.label}</strong>
+                        <span>
+                          {asset.source} · {asset.status}
+                          {blocked ? ' · blocked' : ''}
+                        </span>
+                      </button>
+                    )
+                  })}
                 </div>
 
                 {selectedAsset ? (
@@ -1049,6 +1108,9 @@ function App() {
                         </button>
                       </div>
                     </div>
+                    {selectedAssetHandoff ? (
+                      <p className="card-caption">{traceabilityMessage(selectedAssetHandoff)}</p>
+                    ) : null}
                     <div className="field-grid">
                       <Field
                         label="Label"
@@ -1079,13 +1141,28 @@ function App() {
                       />
                     </div>
                     <div className="field-grid">
-                      <Field
-                        label="Prompt pack link"
-                        value={selectedAsset.promptPackId}
-                        onChange={(value) =>
-                          updateAsset(project, selectedAsset.id, persist, { promptPackId: value })
-                        }
-                      />
+                      <label className="field">
+                        <span>Prompt pack link</span>
+                        <select
+                          value={selectedAsset.promptPackId}
+                          onChange={(event) =>
+                            updateAsset(project, selectedAsset.id, persist, {
+                              promptPackId: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Unlinked</option>
+                          {project.prompts.map((prompt) => (
+                            <option key={prompt.id} value={prompt.id}>
+                              {prompt.label} · {prompt.status}
+                            </option>
+                          ))}
+                          {selectedAsset.promptPackId &&
+                          !project.prompts.some((prompt) => prompt.id === selectedAsset.promptPackId) ? (
+                            <option value={selectedAsset.promptPackId}>Missing prompt pack</option>
+                          ) : null}
+                        </select>
+                      </label>
                       <Field
                         label="Delivery lane"
                         value={selectedAsset.deliveryLane}
@@ -1247,9 +1324,27 @@ function App() {
                   onChange={(value) =>
                     updateProject((current) => ({
                       ...current,
-                      notes: splitLines(value),
+                      notes: notesFromEditor(value),
                       updatedAt: new Date().toISOString(),
                     }))
+                  }
+                  onBlur={() =>
+                    updateProject((current) => {
+                      const notes = cleanNotes(current.notes)
+                      const unchanged =
+                        notes.length === current.notes.length &&
+                        notes.every((note, index) => note === current.notes[index])
+
+                      if (unchanged) {
+                        return current
+                      }
+
+                      return {
+                        ...current,
+                        notes,
+                        updatedAt: new Date().toISOString(),
+                      }
+                    })
                   }
                 />
               </div>
@@ -1332,7 +1427,7 @@ function App() {
         ref={fileInputRef}
         className="hidden-file-input"
         type="file"
-        accept="application/json"
+        accept="application/json,.json"
         onChange={handleImport}
       />
     </div>
@@ -1371,10 +1466,18 @@ type PageWorkbenchProps = {
   onChange: (patch: Partial<ComicPage>) => void
   onRemove: () => void
   onAddPanel: () => void
+  onRemovePanel: (panelId: string) => void
   onUpdatePanel: (panelId: string, patch: Partial<ComicPanel>) => void
 }
 
-function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: PageWorkbenchProps) {
+function PageWorkbench({
+  page,
+  onChange,
+  onRemove,
+  onAddPanel,
+  onRemovePanel,
+  onUpdatePanel,
+}: PageWorkbenchProps) {
   const [activeMode, setActiveMode] = useState<PageWorkbenchMode>('brief')
 
   const workbenchModes: { id: PageWorkbenchMode; label: string; caption: string }[] = [
@@ -1470,6 +1573,12 @@ function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: 
           <div className="panel-grid">
             {page.panels.map((panel) => (
               <div className="panel-card" key={panel.id}>
+                <div className="card-toolbar">
+                  <strong>Panel {panel.panelNumber}</strong>
+                  <button className="ghost tiny" onClick={() => onRemovePanel(panel.id)} type="button">
+                    Remove Panel
+                  </button>
+                </div>
                 <div className="field-grid">
                   <Field
                     label="Panel #"
@@ -1519,8 +1628,13 @@ function PageWorkbench({ page, onChange, onRemove, onAddPanel, onUpdatePanel }: 
             {page.panels.map((panel) => (
               <div className="panel-card" key={panel.id}>
                 <div className="subsection-heading">
-                  <span>Panel {panel.panelNumber}</span>
-                  <strong>{panel.framing || 'Set framing'}</strong>
+                  <span>
+                    Panel {panel.panelNumber}
+                    {panel.framing ? ` · ${panel.framing}` : ''}
+                  </span>
+                  <button className="ghost tiny" onClick={() => onRemovePanel(panel.id)} type="button">
+                    Remove Panel
+                  </button>
                 </div>
                 <TextArea
                   label="Dialogue"
@@ -1669,9 +1783,22 @@ type FieldProps = {
   onChange: (value: string) => void
   type?: 'text' | 'number'
   disabled?: boolean
+  suggestions?: readonly string[]
+  suggestionListId?: string
 }
 
-function Field({ label, value, onChange, type = 'text', disabled = false }: FieldProps) {
+function Field({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  disabled = false,
+  suggestions,
+  suggestionListId,
+}: FieldProps) {
+  const suggestionList = suggestions ?? []
+  const listId = suggestionList.length > 0 ? suggestionListId ?? 'field-suggestions' : undefined
+
   return (
     <label className="field">
       <span>{label}</span>
@@ -1679,8 +1806,16 @@ function Field({ label, value, onChange, type = 'text', disabled = false }: Fiel
         type={type}
         value={value}
         disabled={disabled}
+        list={listId}
         onChange={(event) => onChange(event.target.value)}
       />
+      {listId ? (
+        <datalist id={listId}>
+          {suggestionList.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
+      ) : null}
     </label>
   )
 }
@@ -1714,13 +1849,19 @@ type TextAreaProps = {
   label: string
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
 }
 
-function TextArea({ label, value, onChange }: TextAreaProps) {
+function TextArea({ label, value, onChange, onBlur }: TextAreaProps) {
   return (
     <label className="field field-textarea">
       <span>{label}</span>
-      <textarea rows={5} value={value} onChange={(event) => onChange(event.target.value)} />
+      <textarea
+        rows={5}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        onBlur={onBlur}
+      />
     </label>
   )
 }

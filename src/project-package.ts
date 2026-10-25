@@ -257,7 +257,7 @@ export function createPage(partial?: Partial<ComicPage>): ComicPage {
     pageNumber: partial?.pageNumber ?? 1,
     title: partial?.title ?? 'New page',
     summary: partial?.summary ?? '',
-    panelCount: panels.length || partial?.panelCount || 4,
+    panelCount: panels.length,
     location: partial?.location ?? '',
     turnMoment: partial?.turnMoment ?? '',
     dialogueNotes: partial?.dialogueNotes ?? '',
@@ -469,7 +469,7 @@ export function buildQueueHandoffPackage(
     publishingHandoff: {
       outputs: project.outputs,
       reviewFocus: project.metrics.reviewFocus,
-      notes: project.notes,
+      notes: project.notes.map((note) => note.trim()).filter(Boolean),
     },
     comicVideoImport: {
       pageCount: project.scenes.length,
